@@ -102,18 +102,17 @@ SOFAPYTHON3_API py::array resetArrayFor(BaseData* d);
 SOFAPYTHON3_API py::array getPythonArrayFor(BaseData* d);
 
 
+SOFAPYTHON3_API py::buffer_info toBufferInfo(BaseData& m);
+SOFAPYTHON3_API py::object convertToPython(BaseData* d);
 
-py::buffer_info SOFAPYTHON3_API toBufferInfo(BaseData& m);
-py::object SOFAPYTHON3_API convertToPython(BaseData* d);
+SOFAPYTHON3_API void copyFromListScalar(BaseData& d, const AbstractTypeInfo& nfo, const py::list& l);
 
-void SOFAPYTHON3_API copyFromListScalar(BaseData& d, const AbstractTypeInfo& nfo, const py::list& l);
-
-std::string SOFAPYTHON3_API toSofaParsableString(const py::handle& p);
+SOFAPYTHON3_API std::string toSofaParsableString(const py::handle& p);
 
 //py::object SOFAPYTHON3_API dataToPython(BaseData* d);
 
 /// RVO optimized function. Don't care about copy on the return code.
-void SOFAPYTHON3_API fillBaseObjectdescription(sofa::core::objectmodel::BaseObjectDescription& desc,
+SOFAPYTHON3_API void fillBaseObjectdescription(sofa::core::objectmodel::BaseObjectDescription& desc,
                                const py::dict& dict);
 
 template<typename T>
@@ -133,14 +132,14 @@ void copyScalar(BaseData* a, const AbstractTypeInfo& nfo, py::array_t<T, py::arr
 }
 
 /// Following numpy convention returns the number of element in each dimmensions.
-std::tuple<int, int> SOFAPYTHON3_API getShape(BaseData* self);
+SOFAPYTHON3_API std::tuple<int, int> getShape(BaseData* self);
 
 /// Following numpy convention the number of dimmension in the container.
-size_t SOFAPYTHON3_API getNDim(BaseData* self);
+SOFAPYTHON3_API size_t getNDim(BaseData* self);
 
 /// Following numpy convention the number of elements in all the dimmension
 /// https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.size.html#numpy.ndarray.size
-size_t SOFAPYTHON3_API getSize(BaseData* self);
+SOFAPYTHON3_API size_t getSize(BaseData* self);
 
 SOFAPYTHON3_API std::ostream& operator<<(std::ostream& out, const py::buffer_info& p);
 

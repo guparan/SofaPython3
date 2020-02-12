@@ -54,7 +54,9 @@ PYBIND11_MAKE_OPAQUE(std::vector<sofa::core::objectmodel::BaseData*>);
 template<typename T>
 void declareVector(py::module &m, const std::string &typestr) {
     std::string std_pyclass_name = std::string("StdVector") + typestr;
-    auto v = py::bind_vector<std::vector<T>>(m, std_pyclass_name);
+    // pybind::vector (pybind < 2.4.4) doesn't compile with VS 15.9.x
+    // see https://github.com/pybind/pybind11/issues/1616
+    auto v = py::bind_vector<std::vector<T>>(m, std_pyclass_name, "");
 
     std::string pyclass_name = std::string("Vector") + typestr;
 

@@ -38,7 +38,7 @@ set(SP3_PYTHON_PACKAGES_DIRECTORY
 # BUILD OPTIONS
 if (NOT SP3_COMPILED_AS_SUBPROJECT)
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
+        set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install/${PROJECT_NAME} CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
     endif()
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -48,6 +48,8 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_definitions(-DBOOST_ALL_DYN_LINK)
 
 find_package(SofaFramework REQUIRED)
 find_package(SofaSimulation REQUIRED)
@@ -60,11 +62,7 @@ find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
 set(PYTHON_INCLUDE_DIRS ${Python_INCLUDE_DIR})
 set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
 set(PYBIND11_PYTHON_VERSION ${Python_VERSION})
-find_package(pybind11 QUIET)
-if(NOT pybind11_FOUND)#
-  message("-- Cannot build the python module 'Sofa', missing the pybind software to generate the bindings.")
-  return()
-endif()
+find_package(pybind11 REQUIRED)
 
 message("-- Python executable: ${PYTHON_EXECUTABLE}")
 message("-- Python version: ${PYBIND11_PYTHON_VERSION}")
@@ -119,10 +117,14 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${EXTRA_FILES
 target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAPYTHON3")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "-DSOFA_HAVE_SOFAPYTHON3")
 
-if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # Sized deallocaion is not enabled by default under clang after c++14
-    set(CMAKE_CXX_FLAGS "-fsized-deallocation")
-endif ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsized-deallocation")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(MSVC_TOOLSET_VERSION GREATER 140) # > VS 2015
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+    endif()
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE SofaCore SofaSimulationCore SofaSimulationGraph SofaComponentGeneral)
 

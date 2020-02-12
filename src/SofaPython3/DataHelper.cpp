@@ -462,7 +462,7 @@ BaseData* deriveTypeFromParent(sofa::core::objectmodel::BaseContext* ctx, const 
     return deriveTypeFromParent(parentData);
 }
 
-bool isProtectedKeyword(const std::string& name)
+SOFAPYTHON3_API bool isProtectedKeyword(const std::string& name)
 {
     if (name == "children" || name == "objects" || name == "parents" ||
             name == "data" || name == "links")
