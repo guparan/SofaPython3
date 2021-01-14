@@ -81,12 +81,12 @@ set(PYBIND11_PYTHON_VERSION 3.7)
 
 # Find Python3 executable and set PYTHON_EXECUTABLE before finding pybind11
 # to be sure that pybind11 relies on the right Python version
-find_package(Python3 ${PYBIND11_PYTHON_VERSION} COMPONENTS Interpreter Development REQUIRED)
-set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
-set(PYTHON_LIBRARIES ${Python3_LIBRARIES})
-set(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
-set(PYTHON_LIBRARY ${Python3_LIBRARY})
-set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIR})
+find_package(Python ${PYBIND11_PYTHON_VERSION} COMPONENTS Interpreter Development REQUIRED)
+set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
+set(PYTHON_LIBRARIES ${Python_LIBRARIES})
+set(PYTHON_INCLUDE_DIRS ${Python_INCLUDE_DIRS})
+set(PYTHON_LIBRARY ${Python_LIBRARY})
+set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIR})
 
 # Set the minimum pybind11 version to 2.3 (before that the pybind11::embed target did not exist)
 find_package(pybind11 2.3 CONFIG QUIET REQUIRED)
