@@ -1,4 +1,4 @@
-# plugin.SofaPython3
+# SofaPython3
 
 This project is composed of a Sofa plugin to embed a python interpreter into a Sofa based simulation as well as several python modules that exposes the different c++ components used in Sofa. The binding is designed to be idiomatic python3 API with tight integration for numpy. This project is in a WIP state, please use it only if you are willing to help in the developement. 
 
