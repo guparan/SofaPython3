@@ -77,38 +77,6 @@ namespace sofapython3
 
     void Controller_Trampoline::init()
     {
-//        std::cout<<"Controller Init, waiting for GIL"<<std::endl;
-        PythonEnvironment::gil acquire {"Controller_init"};
-//        std::cout<<"Controller Init, got GIL"<<std::endl;
-        PYBIND11_OVERLOAD(void, Controller, init, );
-//        std::cout<<"END of Controller Init"<<std::endl;
-    }
-
-    void Controller_Trampoline::reinit()
-    {
-//        std::cout<<"Controller reInit, waiting for GIL"<<std::endl;
-        PythonEnvironment::gil acquire {"Controller_reinit"};
-//        std::cout<<"Controller reInit, got GIL"<<std::endl;
-        PYBIND11_OVERLOAD(void, Controller, reinit, );
-    }
-
-
-    /// If a method named "methodName" exists in the python controller,
-    /// methodName is called, with the Event's dict as argument
-    void Controller_Trampoline::callScriptMethod(
-                const py::object& self, Event* event, const std::string & methodName)
-    {
-        if( py::hasattr(self, methodName.c_str()) )
-        {
-            py::object fct = self.attr(methodName.c_str());
-            fct(PythonFactory::toPython(event));
-        }
-    }
-
-    void Controller_Trampoline::handleEvent(Event* event)
-    {
-        PythonEnvironment::gil acquire{"Controller_handleEvent"};
-
         py::object self = py::cast(this);
         std::string name = std::string("on")+event->getClassName();
         /// Is there a method with this name in the class ?
