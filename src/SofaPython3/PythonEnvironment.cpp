@@ -125,6 +125,8 @@ public:
     }
 
     std::set<std::string> addedPath;
+
+    py::module m_sofamodule ;
 private:
     std::vector<wchar_t*> m_argv;
 };
@@ -139,7 +141,7 @@ PythonEnvironmentData* PythonEnvironment::getStaticData()
     return m_staticdata;
 }
 
-py::module PythonEnvironment::importFromFile(const std::string& module, const std::string& path, py::object& globals)
+SOFAPYTHON3_API py::module PythonEnvironment::importFromFile(const std::string& module, const std::string& path, py::object& globals)
 {
     PythonEnvironment::gil lock;
     py::dict locals;
@@ -151,7 +153,8 @@ py::module PythonEnvironment::importFromFile(const std::string& module, const st
                                               "new_module = imp.load_module(module_name, open(path), path, ('py', 'U', imp.PY_SOURCE))\n",
                                               globals,
                                               locals);
-    return py::cast<py::module>(locals["new_module"]);
+    py::module m =  py::cast<py::module>(locals["new_module"]);
+    return m;
 }
 
 
@@ -167,15 +170,15 @@ void PythonEnvironment::Init()
     }
 
 
-    #if defined(__linux__)
-        // WARNING: workaround to be able to import python libraries on linux (like
-        // numpy), at least on Ubuntu (see http://bugs.python.org/issue4434). It is
-        // not fixing the real problem, but at least it is working for now.
-        // dmarchal: The problem still exists python3 10/10/2018.
-        std::string pythonLibraryName = "libpython" + std::string(pythonVersion,0,3) + "m.so";
-        dlopen( pythonLibraryName.c_str(), RTLD_LAZY|RTLD_GLOBAL );
-        msg_info("SofaPython3") << "Shared library name is '" << pythonLibraryName << "'" ;
-    #endif
+#if defined(__linux__)
+    // WARNING: workaround to be able to import python libraries on linux (like
+    // numpy), at least on Ubuntu (see http://bugs.python.org/issue4434). It is
+    // not fixing the real problem, but at least it is working for now.
+    // dmarchal: The problem still exists python3 10/10/2018.
+    std::string pythonLibraryName = "libpython" + std::string(pythonVersion,0,3) + "m.so";
+    dlopen( pythonLibraryName.c_str(), RTLD_LAZY|RTLD_GLOBAL );
+    msg_info("SofaPython3") << "Shared library name is '" << pythonLibraryName << "'" ;
+#endif
 
     /// Prevent the python terminal from being buffered, not to miss or mix up traces.
     if( putenv( (char*)"PYTHONUNBUFFERED=1" ) )
@@ -185,11 +188,12 @@ void PythonEnvironment::Init()
     {
         msg_info("SofaPython3") << "Intializing python";
         py::initialize_interpreter();
+        // the first gil aquisition should happen right after the python interpreter
+        // is initialized.
+        static const PyThreadState* init = PyEval_SaveThread(); (void) init;
     }
 
     PyEval_InitThreads();
-
-    // the first gil lock is here
     gil lock;
 
     // Required for sys.path, used in addPythonModulePath().
@@ -241,14 +245,30 @@ void PythonEnvironment::Init()
         }
     }
 
+    getStaticData()->m_sofamodule = py::module::import("Sofa");
+
+
     // python livecoding related
-    //PyRun_SimpleString("from SofaPython3.livecoding import onReimpAFile");
+    PyRun_SimpleString("from Sofa.livecoding import onReimpAFile");
 
     // general sofa-python stuff
 
     // python modules are automatically reloaded at each scene loading
     //setAutomaticModuleReload( true );
 }
+
+void PythonEnvironment::executePython(std::function<void()> cb)
+{
+    sofapython3::PythonEnvironment::gil acquire;
+
+    try{
+        cb();
+    }catch(std::exception& e)
+    {
+        msg_error("SofaPython3") << e.what() ;
+    }
+}
+
 
 void PythonEnvironment::Release()
 {
@@ -366,7 +386,7 @@ bool PythonEnvironment::runString(const std::string& script)
 }
 
 bool PythonEnvironment::runFile(const std::string& filename,
-                                       const std::vector<std::string>& arguments)
+                                const std::vector<std::string>& arguments)
 {
     py::object main = py::module::import(filename.c_str()).attr("__main__");
 
@@ -464,39 +484,61 @@ void PythonEnvironment::excludeModuleFromReload( const std::string& moduleName )
 
 static const bool debug_gil = false;
 static PyGILState_STATE lock(const char* trace) {
-    if(debug_gil && trace) {
-        std::clog << ">> " << trace << " wants the gil" << std::endl;
+    if(debug_gil) {
+        auto tid = PyGILState_GetThisThreadState()->thread_id % 10000;
+        auto id = PyGILState_GetThisThreadState()->id;
+
+        if(trace)
+            std::clog << ">> ["<<id << "(" << tid  <<")]:: " << trace<< " wants the gil" << std::endl;
+        else
+            std::clog << ">> ["<<id << "(" << tid  <<")]:: wants the gil" << std::endl;
     }
-
-    // this ensures that we start with no active thread before first locking the
-    // gil: this way the last gil unlock lets python threads to run (otherwise
-    // the main thread still holds the gil, preventing python threads to run
-    // until the main thread exits).
-
-    // the first gil aquisition should happen right after the python interpreter
-    // is initialized.
-    static const PyThreadState* init = PyEval_SaveThread(); (void) init;
-
     return PyGILState_Ensure();
 }
 
+PythonEnvironment::gil::gil(const char* trace)
+    : state(lock(trace)),
+      trace(trace) { }
 
-PythonEnvironment::no_gil::no_gil(const char* trace)
-    : state(PyEval_SaveThread()),
-      trace(trace) {
-    if(debug_gil && trace) {
-        std::clog << ">> " << trace << " temporarily released the gil" << std::endl;
+
+PythonEnvironment::gil::~gil() {
+
+    auto tid = PyGILState_GetThisThreadState()->thread_id % 10000;
+    auto id = PyGILState_GetThisThreadState()->id;
+    if(debug_gil) {
+        if(trace)
+            std::clog << "<< ["<<id << "(" << tid  <<")]: " << trace << " prepare to released the gil" << std::endl;
+        else
+            std::clog << "<< ["<<id << "(" << tid  <<")]:: prepare to released the gil" << std::endl;
     }
+
+    PyGILState_Release(state);
+    if(debug_gil) {
+        if(trace)
+            std::clog << "<< ["<<id << "(" << tid  <<")]: " << trace << " released the gil" << std::endl;
+        else
+            std::clog << "<< ["<<id << "(" << tid  <<")]: released the gil" << std::endl;
+    }
+
 }
 
-PythonEnvironment::no_gil::~no_gil() {
 
-    if(debug_gil && trace) {
-        std::clog << "<< " << trace << " wants to reacquire the gil" << std::endl;
-    }
+//PythonEnvironment::no_gil::no_gil(const char* trace)
+//    : state(PyEval_SaveThread()),
+//      trace(trace) {
+//    if(debug_gil && trace) {
+//        std::clog << ">> " << trace << " temporarily released the gil" << std::endl;
+//    }
+//}
 
-    PyEval_RestoreThread(state);
-}
+//PythonEnvironment::no_gil::~no_gil() {
+
+//    if(debug_gil && trace) {
+//        std::clog << "<< " << trace << " wants to reacquire the gil" << std::endl;
+//    }
+
+//    PyEval_RestoreThread(state);
+//}
 
 } // namespace sofapython
 

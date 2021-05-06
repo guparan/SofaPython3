@@ -52,6 +52,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SofaFramework REQUIRED)
 find_package(SofaSimulation REQUIRED)
 find_package(SofaGeneral REQUIRED)
+find_package(SofaComponentGeneral REQUIRED)
 
 
 unset(PYTHON_EXECUTABLE)
@@ -65,9 +66,18 @@ if(NOT pybind11_FOUND)#
   return()
 endif()
 
+message("-- Python executable: ${PYTHON_EXECUTABLE}")
+message("-- Python version: ${PYBIND11_PYTHON_VERSION}")
 message("-- Python include dirs: ${PYTHON_INCLUDE_DIRS}")
 message("-- Python libraries: ${PYTHON_LIBRARIES}")
 message("-- Python library: ${PYTHON_LIBRARY}")
+
+# Unset the following variables to not confuse the user between the variables used by find_package(Python) and
+# those used by find_package(pybind11). The later only uses the output of find_package(Python).
+unset(PYTHON_EXECUTABLE)
+unset(PYTHON_INCLUDE_DIRS)
+unset(PYTHON_LIBRARIES)
+unset(PYTHON_LIBRARY)
 
 set(HEADER_FILES
     src/SofaPython3/config.h
@@ -78,6 +88,7 @@ set(HEADER_FILES
     src/SofaPython3/DataCache.h
     src/SofaPython3/DataHelper.h
     src/SofaPython3/PythonFactory.h
+    src/SofaPython3/Prefab.h
     )
 
 set(SOURCE_FILES
@@ -88,6 +99,7 @@ set(SOURCE_FILES
     src/SofaPython3/DataCache.cpp
     src/SofaPython3/DataHelper.cpp
     src/SofaPython3/PythonFactory.cpp
+    src/SofaPython3/Prefab.cpp
 )
 
 set(EXTRA_FILES
@@ -119,11 +131,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     target_link_libraries(${PROJECT_NAME} PRIVATE dl)
 endif()
 
+if (CMAKE_SYSTEM_NAME STREQUAL Windows )
+    target_include_directories(${PROJECT_NAME} PUBLIC "${pybind11_INCLUDE_DIR}")
+
+    # https://github.com/boostorg/system/issues/32
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "-DHAVE_SNPRINTF")
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:include>")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC "${PYTHON_LIBRARY}" )
-target_include_directories(${PROJECT_NAME} PUBLIC "${PYTHON_INCLUDE_DIR}")
+target_link_libraries(${PROJECT_NAME} PUBLIC Python::Python )
 
 ## When installing, copy the content of the example directory into module/SofaPython3
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples DESTINATION modules/SofaPython3 COMPONENT resources)
@@ -151,7 +169,6 @@ set(DOCUMENTATION_FILES
     License.md
     docs/sphinx/source/index.rst
     docs/sphinx/source/menu/install.rst
-    docs/sphinx/source/menu/Welcome.rst
     docs/sphinx/source/menu/Contributing.rst
     docs/sphinx/source/menu/SofaPlugin.rst
     docs/sphinx/source/menu/SofaModule.rst
@@ -162,3 +179,19 @@ add_custom_target(Documentation SOURCES ${DOCUMENTATION_FILES})
 
 ### Python binding
 add_subdirectory(bindings)
+
+
+SP3_add_python_package(
+        SOURCE_DIRECTORY
+            ${CMAKE_CURRENT_SOURCE_DIR}/splib
+        TARGET_DIRECTORY
+            ${SP3_PYTHON_PACKAGES_DIRECTORY}/splib
+)
+
+SP3_add_python_package(
+        SOURCE_DIRECTORY
+            ${CMAKE_CURRENT_SOURCE_DIR}/constants
+        TARGET_DIRECTORY
+            ${SP3_PYTHON_PACKAGES_DIRECTORY}/Sofa/constants
+)
+

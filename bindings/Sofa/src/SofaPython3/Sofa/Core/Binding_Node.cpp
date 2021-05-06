@@ -190,8 +190,58 @@ py::object addObjectKwargs(Node* self, const std::string& type, const py::kwargs
         throw py::value_error(object->getLoggedMessagesAsString({Message::Error}));
     }
 
-    return py::cast(object);
+    for(auto a : kwargs)
+    {
+        BaseData* d = object->findData(py::cast<std::string>(a.first));
+        if(d)
+            d->setPersistent(true);
+    }
+    return PythonFactory::toPython(object.get());
 }
+
+/// Implement the addObject function.
+py::object addKwargs(Node* self, const py::object& callable, const py::kwargs& kwargs)
+{
+    if(py::isinstance<BaseObject*>(callable))
+    {
+        BaseObject* obj = py::cast<BaseObject*>(callable);
+
+        self->addObject(obj);    
+        return py::cast(obj);
+    }
+
+    if(py::isinstance<Node*>(callable))
+    {
+        Node* node = py::cast<Node*>(callable);
+        self->addChild(node);
+        return py::cast(node);
+    }
+
+    if(py::isinstance<py::str>(callable))
+    {
+        py::str type = callable;
+        return addObjectKwargs(self, type, kwargs);
+    }
+
+    if (kwargs.contains("name"))
+    {
+        std::string name = py::str(kwargs["name"]);
+        if (sofapython3::isProtectedKeyword(name))
+            throw py::value_error("addObject: Cannot call addObject with name " + name + ": Protected keyword");
+    }
+
+    auto c = callable(self, **kwargs);
+    Base* base = py::cast<Base*>(c);
+    for(auto a : kwargs)
+    {
+        BaseData* d = base->findData(py::cast<std::string>(a.first));
+        if(d)
+            d->setPersistent(true);
+    }
+
+    return c;
+}
+
 
 /// Only addObject is needed now, the createObject is deprecated and will prints
 /// a warning for old scenes.
@@ -210,6 +260,14 @@ py::object addChildKwargs(Node* self, const std::string& name, const py::kwargs&
     fillBaseObjectdescription(desc,kwargs);
     auto node=simpleapi::createChild(self, desc);
     checkParamUsage(desc);
+
+    for(auto a : kwargs)
+    {
+        BaseData* d = node->findData(py::cast<std::string>(a.first));
+        if(d)
+            d->setPersistent(true);
+    }
+
     return py::cast(node);
 }
 
@@ -314,8 +372,10 @@ py::object __getitem__(Node& self, const std::string& s)
             stringlist.push_back(token);
     }
 
-    // perform here the syntax checks over the string to parse
+    if(stringlist.empty())
+        throw py::value_error("Invalid path provided");
 
+    // perform here the syntax checks over the string to parse
     // special case allowed: root[".attr1"]
     if (stringlist.front().empty()) stringlist.pop_front();
     for (const auto& string : stringlist)
@@ -406,6 +466,7 @@ void moduleAddNode(py::module &m) {
     p.def(py::init(&__init__noname), sofapython3::doc::sofa::core::Node::init);
     p.def(py::init(&__init__), sofapython3::doc::sofa::core::Node::init1Arg, py::arg("name"));
     p.def("init", &init, sofapython3::doc::sofa::core::Node::initSofa );
+    p.def("add", &addKwargs, sofapython3::doc::sofa::core::Node::addKwargs);
     p.def("addObject", &addObjectKwargs, sofapython3::doc::sofa::core::Node::addObjectKwargs);
     p.def("addObject", &addObject, sofapython3::doc::sofa::core::Node::addObject);
     p.def("createObject", &createObject, sofapython3::doc::sofa::core::Node::createObject);

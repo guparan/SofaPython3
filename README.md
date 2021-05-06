@@ -1,4 +1,4 @@
-# plugin.SofaPython3
+# SofaPython3
 
 This project is composed of a Sofa plugin to embed a python interpreter into a Sofa based simulation as well as several python modules that exposes the different c++ components used in Sofa. The binding is designed to be idiomatic python3 API with tight integration for numpy. This project is in a WIP state, please use it only if you are willing to help in the developement. 
 
@@ -6,7 +6,7 @@ This project is composed of a Sofa plugin to embed a python interpreter into a S
 
 ### Requirement Install
 - pybind11 (minimal 2.2.4)
-- cmake (minimal 3.12)
+- cmake (minimal 3.14)
 - developement package for python3 (python3-dev)
 
 ### In-tree build
@@ -15,7 +15,19 @@ Add this directory path in `CMAKE_EXTERNAL_DIRECTORIES`.
 NB: This plugin cannot be build through in-build process when the old SofaPython plugin is activated. To have both SofaPython3 and SofaPython you need to use out-of-tree build. 
 
 ### Out-of-tree build
-This plugin should compile with out-of-tree builds
+This plugin should compile with out-of-tree builds.
+You might need to add the Sofa's installation path to the CMake prefix path. If you compiled Sofa in directory _$SOFA_ROOT/build_, consider doing an install step (make install, ninja install, etc.) and adding this installation path (example `cmake -DCMAKE_PREFIX_PATH=$SOFA_ROOT/build/install ..`).
+
+### Changing the python path
+The compilation of SofaPython3 plugin and bindings are tied to the python core library found during the CMake stage.
+To change the python version used for the compilation, you can either:
+1. Provide the python executable path with `Python_EXECUTABLE`
+ ```cmake -DPython_EXECUTABLE=/usr/local/bin/python3 ..```
+2. Provide the python root path with `Python_ROOT_DIR`
+ ```cmake -DPython_ROOT_DIR=/usr/local ..```
+
+To see all the hints that can be provided to CMake, see the official CMake documentation on Python :
+https://cmake.org/cmake/help/latest/module/FindPython.html
 
 ## Features
 
@@ -71,5 +83,4 @@ p = root["child1.child2.dofs.position"]      ## Ffast access
 ```
 - improve onEvent() method in Controller (Bruno)
 - autodoc & docstring generation on https://sofapython3.readthedocs.io/en/latest/ (Damien)
-
 

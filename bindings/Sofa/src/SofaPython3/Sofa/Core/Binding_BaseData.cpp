@@ -121,7 +121,7 @@ void __setattr__(py::object self, const std::string& s, py::object value)
 
     if(py::isinstance<DataContainer>(value))
     {
-        py::array a = getPythonArrayFor(selfdata);
+        py::array a = getPythonArrayFor(py::cast<DataContainer*>(value));
         BindingBase::SetDataFromArray(selfdata, a);
         return;
     }
@@ -131,7 +131,7 @@ void __setattr__(py::object self, const std::string& s, py::object value)
         BindingBase::SetDataFromArray(selfdata, py::cast<py::array>(value));
         return;
     }
-    BindingBase::SetAttr(py::cast(selfdata->getOwner()),s,value);
+    BindingBase::SetAttr(py::cast(selfdata->getOwner()),selfdata->getName(),value);
 }
 
 py::object __getattr__(py::object self, const std::string& s)
@@ -172,6 +172,11 @@ bool isDirty(BaseData* self)
     return self->isDirty();
 }
 
+py::object getOwner(BaseData& self)
+{
+    return PythonFactory::toPython(self.getOwner());
+}
+
 void moduleAddBaseData(py::module& m)
 {
     /// Register the BaseData binding into the pybind11 system.
@@ -181,7 +186,7 @@ void moduleAddBaseData(py::module& m)
     data.def("getCounter", [](BaseData& self) { return self.getCounter(); }, sofapython3::doc::baseData::getCounter);
     data.def("getHelp", &BaseData::getHelp, sofapython3::doc::baseData::getHelp);
     data.def("unset", &BaseData::unset, sofapython3::doc::baseData::unset);
-    data.def("getOwner", &BaseData::getOwner, sofapython3::doc::baseData::getOwner);
+    data.def("getOwner", &getOwner, sofapython3::doc::baseData::getOwner);
     data.def("getParent", &BaseData::getParent, sofapython3::doc::baseData::getParent);
     data.def("typeName", [](BaseData& data){ return data.getValueTypeInfo()->name(); }, sofapython3::doc::baseData::typeName);
     data.def("getPathName", getPathName, sofapython3::doc::baseData::getPathName);

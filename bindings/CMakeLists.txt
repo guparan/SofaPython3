@@ -16,10 +16,12 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/installed-bindings-config"
     DESTINATION "etc/sofa/python.d"
     RENAME "plugin.SofaPython3.bindings")
 
+
 add_subdirectory(Sofa)
 add_subdirectory(SofaRuntime)
 add_subdirectory(SofaGui)
 add_subdirectory(SofaTypes)
+add_subdirectory(Modules)
 
 find_package(SofaExporter QUIET)
 if (SofaExporter_FOUND)

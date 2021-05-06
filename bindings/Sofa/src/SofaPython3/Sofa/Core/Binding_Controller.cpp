@@ -32,7 +32,8 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 
 #include <SofaPython3/DataHelper.h>
 #include <SofaPython3/PythonFactory.h>
-
+#include <SofaPython3/PythonEnvironment.h>
+using sofapython3::PythonEnvironment;
 
 PYBIND11_DECLARE_HOLDER_TYPE(Controller,
                              sofapython3::py_shared_ptr<Controller>, true)
@@ -76,11 +77,13 @@ namespace sofapython3
 
     void Controller_Trampoline::init()
     {
+        PythonEnvironment::gil acquire {"Controller_init"};
         PYBIND11_OVERLOAD(void, Controller, init, );
     }
 
     void Controller_Trampoline::reinit()
     {
+        PythonEnvironment::gil acquire {"Controller_reinit"};
         PYBIND11_OVERLOAD(void, Controller, reinit, );
     }
 
@@ -99,6 +102,7 @@ namespace sofapython3
 
     void Controller_Trampoline::handleEvent(Event* event)
     {
+        PythonEnvironment::gil acquire {"Controller_handleEvent"};
 
         py::object self = py::cast(this);
         std::string name = std::string("on")+event->getClassName();
@@ -106,16 +110,12 @@ namespace sofapython3
         if( py::hasattr(self, name.c_str()) )
         {
             py::object fct = self.attr(name.c_str());
-            try {
-                /// I didn't find any introspection tool in pybind11 to check
-                /// if an attr is a callable or not. Using try/catch instead
-                ///
-                /// Call the matching event in the funcVector & pass it the given event
-                callScriptMethod(self, event, name);
-                return;
-            } catch (std::exception& /*e*/) {
-                /// fct is not a method. call the 'onEvent' fallback method instead
-            }
+            /// I didn't find any introspection tool in pybind11 to check
+            /// if an attr is a callable or not. Using try/catch instead
+            ///
+            /// Call the matching event in the funcVector & pass it the given event
+            callScriptMethod(self, event, name);
+            return;
         }
 
         /// Is the fallback method available.
@@ -144,7 +144,7 @@ namespace sofapython3
                       py::object value = py::reinterpret_borrow<py::object>(kv.second);
 
                       if( key == "name")
-                          c->setName(py::cast<std::string>(kv.second));
+                      c->setName(py::cast<std::string>(kv.second));
                       try {
                           BindingBase::SetAttr(*c, key, value);
                       } catch (py::attribute_error& /*e*/) {

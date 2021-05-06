@@ -64,6 +64,7 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 #include <sofa/simulation/SceneLoaderFactory.h>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/eval.h>
 
 #include "config.h"
 
@@ -81,7 +82,7 @@ public:
     static void Init();
     static void Release();
 
-    static py::module SOFAPYTHON3_API importFromFile(const std::string& module,
+    static py::module importFromFile(const std::string& module,
                                      const std::string& path,
                                      py::object& globals);
 
@@ -120,6 +121,8 @@ public:
     /// excluding a module from automatic reload
     static void excludeModuleFromReload( const std::string& moduleName );
 
+    static void executePython(std::function<void()>);
+
     /// to be able to react when a scene is loaded
     struct SceneLoaderListerner : public SceneLoader::Listener
     {
@@ -137,24 +140,25 @@ public:
     /// in a scope. these should be surrounding any python code called from c++,
     /// i.e. in all the methods in PythonEnvironment and all the methods in
     /// PythonScriptController.
-    using gil = pybind11::gil_scoped_acquire;
-//    class SOFAPYTHON3_API gil {
-//        const PyGILState_STATE state;
-//        const char* const trace;
-//    public:
-//        gil(const char* trace = nullptr);
-//        ~gil();
-//    };
-
-    class SOFAPYTHON3_API no_gil {
-        PyThreadState* const state;
+    class SOFAPYTHON3_API gil {
+        const PyGILState_STATE state;
         const char* const trace;
     public:
-        no_gil(const char* trace = nullptr);
-        ~no_gil();
+        gil(const char* trace = nullptr);
+        ~gil();
     };
 
+// Not working in Sofapython3, need update.
+//    class SOFAPYTHON3_API no_gil {
+//        PyThreadState* const state;
+//        const char* const trace;
+//    public:
+//        no_gil(const char* trace = nullptr);
+//        ~no_gil();
+//    };
+
     struct system_exit : std::exception { };
+
 
 private:
     static PythonEnvironmentData* getStaticData() ;

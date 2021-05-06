@@ -90,7 +90,7 @@ static void parse_emitter_message_then(py::args args, const Action& action) {
         std::string filename = py::cast<std::string>(args[2]);
         int lineno = py::cast<int>(args[3]);
 
-        if( py::isinstance<std::string>(py_emitter) )
+        if( py::isinstance<py::str>(py_emitter) )
         {
             action(ComponentInfo::SPtr(new ComponentInfo(py::cast<std::string>(py_emitter))),
                    message.c_str(),  SOFA_FILE_INFO_COPIED_FROM(filename, lineno));
@@ -113,6 +113,23 @@ PYBIND11_MODULE(Helper, helper)
     helper.doc() = R"doc(
            Utility functions
            -----------------------
+           The 'info' messages are emitted *only* when the object.printLog is
+           set to True.
+
+           Examples:
+
+            .. code-block:: python
+
+               msg_info("something bad happens")
+               msg_info(sofaObject, "something bad happens")
+               msg_info(sofaNode, "something bad happens")
+               msg_info(emitting_file, emitting_loc, "something bad happens")
+               msg_info(sofaObject, "something bad happens", emitting_file, emitting_loc)
+               msg_info(sofaNode, "something bad happens", emitting_file, emitting_loc)
+
+           Notes:
+               The way the message are printed depends on the application.
+               Messages can be routed the console, log files, GUI or ignored.
 
            .. autosummary::
                Sofa.Helper.msg_info
@@ -120,31 +137,19 @@ PYBIND11_MODULE(Helper, helper)
                Sofa.Helper.msg_error
                Sofa.Helper.msg_deprecated
                Sofa.Helper.msg_fatal
-
        )doc";
 
     helper.def("msg_info", [](py::args args) { MESSAGE_DISPATCH(msg_info); },
-            R"(Emit an info message from python.
-            The 'info' messages are emitted *only* when the object.printLog is
-            set to True.
-
-            Examples:
-                msg_info("something bad happens")
-                msg_info(sofaObject, "something bad happens")
-                msg_info(sofaNode, "something bad happens")
-                msg_info(emitting_file, emitting_loc, "something bad happens")
-                msg_info(sofaObject, "something bad happens", emitting_file, emitting_loc)
-                msg_info(sofaNode, "something bad happens", emitting_file, emitting_loc)
-
-            Notes:
-                The way the message are printed depends on the application.
-                Messages can be routed the console, log files, GUI or ignored.
-            )"
+            R"(Emit an info message from python.)"
             );
-    helper.def("msg_warning", [](py::args args) { MESSAGE_DISPATCH(msg_warning); });
-    helper.def("msg_error", [](py::args args) { MESSAGE_DISPATCH(msg_error); });
-    helper.def("msg_deprecated", [](py::args args) { MESSAGE_DISPATCH(msg_deprecated); });
-    helper.def("msg_fatal", [](py::args args) { MESSAGE_DISPATCH(msg_fatal); });
+    helper.def("msg_warning", [](py::args args) { MESSAGE_DISPATCH(msg_warning); },
+    R"(Emit a warning message from python.)");
+    helper.def("msg_error", [](py::args args) { MESSAGE_DISPATCH(msg_error); },
+    R"(Emit an error message from python.)");
+    helper.def("msg_deprecated", [](py::args args) { MESSAGE_DISPATCH(msg_deprecated); },
+    R"(Emit a deprecated message from python.)");
+    helper.def("msg_fatal", [](py::args args) { MESSAGE_DISPATCH(msg_fatal); },
+    R"(Emit a fatal error message from python.)");
 
     moduleAddVector(helper);
     moduleAddSystem(helper);

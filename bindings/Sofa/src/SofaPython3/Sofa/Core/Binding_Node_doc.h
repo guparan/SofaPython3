@@ -75,7 +75,7 @@ static auto Class =
         Accessing children or object from the current node is easy thanks to the generalized access
         API.
         Example of use:
-          .. code-block:: python
+        .. code-block:: python
 
              # ...
              n = Sofa.Core.Node("MyNode")
@@ -117,6 +117,19 @@ static auto initSofa =
         :type self: Sofa.Simulation.Node&
         :rtype: Sofa.Simulation.Node
         )";
+
+static auto addKwargs =
+        R"(
+        Add an prefab,
+        example:
+            def Cube(parentNodes, name="Cube"):
+                cube = parentNode.addChild(name)
+                cube.addObject("MechanicalObject")
+                return cube
+
+            node.add(Cube, name="MyCube"")
+        )";
+
 
 static auto addObjectKwargs =
         R"(
